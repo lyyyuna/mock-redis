@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 )
 
@@ -69,7 +70,92 @@ func (v Value) Integer() int {
 	}
 }
 
+func (v Value) Bytes() []byte {
+	switch v.typ {
+	case BulkStrings, SimpleStrings, Errors:
+		return v.str
+	default:
+		return []byte(v.String())
+	}
+}
+
+func (v Value) IsNull() bool {
+	return v.null
+}
+
+func (v Value) Error() error {
+	switch v.typ {
+	case Errors:
+		return errors.New(string(v.str))
+	}
+
+	return nil
+}
+
+func (v Value) Array() []Value {
+	if !v.null && v.typ == Arrays {
+		return v.array
+	}
+
+	return nil
+}
+
 var nullValue = Value{null: true}
+
+func replaceNewlineWithSpace(oriS string) string {
+	re := regexp.MustCompile("\r")
+	oriS = re.ReplaceAllString(oriS, " ")
+	re = regexp.MustCompile("\n")
+	newS := re.ReplaceAllString(oriS, " ")
+
+	return newS
+}
+
+func simpleStringsValue(s string) Value {
+	return Value{
+		typ: SimpleStrings,
+		str: []byte(replaceNewlineWithSpace(s)),
+	}
+}
+
+func bulkStringsValue(b []byte) Value {
+	return Value{
+		typ: BulkStrings,
+		str: b,
+	}
+}
+
+func nullsValue() Value {
+	return Value{
+		typ:  BulkStrings,
+		null: true,
+	}
+}
+
+func errorsValue(err error) Value {
+	if err == nil {
+		return Value{typ: Errors}
+	}
+
+	return Value{
+		typ: Errors,
+		str: []byte(err.Error()),
+	}
+}
+
+func integersValue(i int) Value {
+	return Value{
+		typ:     Integers,
+		integer: i,
+	}
+}
+
+func arrayValue(vals []Value) Value {
+	return Value{
+		typ:   Arrays,
+		array: vals,
+	}
+}
 
 func (v Value) MarshalRESP() ([]byte, error) {
 	return marshalRESP(v)

@@ -99,7 +99,7 @@ func (r *Reader) readArrayValue() (val Value, n int, err error) {
 		return Value{typ: '*', null: true}, n, nil
 	}
 
-	arrvals := make([]Value, 0)
+	arrvals := make([]Value, totalCnt)
 	for i := 0; i < totalCnt; i++ {
 		val, rn, err := r.readValue()
 		n += rn
